@@ -1,0 +1,18 @@
+services:
+  ml-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app/server
+      - models_volume:/app/server/storage
+    environment:
+      - UV_CACHE_DIR=/tmp/uv-cache
+    restart: unless-stopped
+
+volumes:
+  models_volume:
