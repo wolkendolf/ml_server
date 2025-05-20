@@ -8,6 +8,7 @@ dependencies = [
     "aiohttp>=3.11.18",
     "fastapi>=0.115.12",
     "jupyter>=1.1.1",
+    "nest-asyncio>=1.6.0",
     "python-dotenv>=1.1.0",
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",

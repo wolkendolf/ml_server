@@ -50,6 +50,7 @@ def run_fit(
     finally:
         with active_processes.get_lock():
             active_processes.value -= 1
+            print("run_fit_func: ", active_processes.value)
 
 
 @app.post("/fit")
@@ -57,27 +58,31 @@ async def fit_model(request: TrainRequest, background_tasks: BackgroundTasks):
     """
     Train a model in a separate process.
     """
-    with active_processes.get_lock():
-        if active_processes.value >= MAX_PROCESSES:
-            raise HTTPException(
-                status_code=429,
-                detail=f"No available cores for training. Max processes: {MAX_PROCESSES}",
-            )
-        active_processes.value += 1
-
     try:
+        with active_processes.get_lock():
+            if active_processes.value >= MAX_PROCESSES:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"No available cores for training. Max processes: {MAX_PROCESSES}",
+                )
+
         process = multiprocessing.Process(
             target=run_fit,
             args=(request.X, request.y, request.config),
         )
         process.start()
         background_tasks.add_task(process.join)
+
+        active_processes.value += 1
+        print("fit_model: ", active_processes.value)
+
         return {
             "message": f"Training started for model_name '{request.config.get('model_name')}'"
         }
     except Exception as e:
         with active_processes.get_lock():
             active_processes.value -= 1
+            print("fit_model_except: ", active_processes.value)
         if "No available cores" in str(e):
             raise HTTPException(status_code=429, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
@@ -95,6 +100,7 @@ async def predict_model(request: PredictRequest):
                 detail=f"No available cores for inference. Max requests: {MAX_REQUESTS}",
             )
         active_requests.value += 1
+        print("predict_model: ", active_processes.value)
 
     try:
         predictions = predict(request.y, request.config)
@@ -108,6 +114,7 @@ async def predict_model(request: PredictRequest):
     finally:
         with active_requests.get_lock():
             active_requests.value -= 1
+            print("predict_model_finally: ", active_processes.value)
 
 
 @app.post("/load")
